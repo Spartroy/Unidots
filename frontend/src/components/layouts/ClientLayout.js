@@ -2,8 +2,12 @@ import React, { useContext } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Fragment } from 'react';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
-import { Bars3Icon, XMarkIcon, BellIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import AuthContext from '../../context/AuthContext';
+import NotificationDropdown from '../common/NotificationDropdown';
+import ChatBot from '../common/ChatBot';
+import logo from '../../assets/logo.png';
+
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
@@ -18,22 +22,30 @@ const ClientLayout = () => {
     { name: 'Dashboard', href: '/client', current: location.pathname === '/client' },
     { name: 'Orders', href: '/client/orders', current: location.pathname.startsWith('/client/orders') },
     { name: 'Claims', href: '/client/claims', current: location.pathname.startsWith('/client/claims') },
+    { name: 'Dot Deformation Detector', href: '/DotDeformationDetector', current: location.pathname.startsWith('/DotDeformationDetector') }
+
   ];
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Disclosure as="nav" className="bg-primary-600">
-        {({ open }) => (
+      <Disclosure as="nav" className="bg-gray-800">
+      {({ open }) => (
           <>
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <div className="flex h-16 items-center justify-between">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <img
-                      className="h-8 w-auto"
-                      src="/logo.svg"
-                      alt="Unidots"
-                    />
+
+                    <img src={logo} alt="UNI Logo" className="h-16 w-auto" />
+
+
+                    {/* <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="h-8 w-auto">
+                      <rect width="100" height="100" rx="20" fill="#4F46E5" />
+                      <text x="50" y="62" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" fill="white" textAnchor="middle">UNI</text>
+                      <circle cx="30" cy="30" r="8" fill="white" />
+                      <circle cx="50" cy="30" r="8" fill="white" />
+                      <circle cx="70" cy="30" r="8" fill="white" />
+                    </svg> */}
                   </div>
                   <div className="hidden md:block">
                     <div className="ml-10 flex items-baseline space-x-4">
@@ -57,13 +69,7 @@ const ClientLayout = () => {
                 </div>
                 <div className="hidden md:block">
                   <div className="ml-4 flex items-center md:ml-6">
-                    <button
-                      type="button"
-                      className="rounded-full bg-primary-600 p-1 text-primary-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary-600"
-                    >
-                      <span className="sr-only">View notifications</span>
-                      <BellIcon className="h-6 w-6" aria-hidden="true" />
-                    </button>
+                    <NotificationDropdown colorClasses="bg-primary-600 text-primary-200" />
 
                     {/* Profile dropdown */}
                     <Menu as="div" className="relative ml-3">
@@ -164,13 +170,7 @@ const ClientLayout = () => {
                     <div className="text-base font-medium text-white">{user?.name}</div>
                     <div className="text-sm font-medium text-primary-300">{user?.email}</div>
                   </div>
-                  <button
-                    type="button"
-                    className="ml-auto flex-shrink-0 rounded-full bg-primary-600 p-1 text-primary-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary-600"
-                  >
-                    <span className="sr-only">View notifications</span>
-                    <BellIcon className="h-6 w-6" aria-hidden="true" />
-                  </button>
+                  <NotificationDropdown colorClasses="bg-primary-600 text-primary-200" />
                 </div>
                 <div className="mt-3 space-y-1 px-2">
                   <Disclosure.Button
@@ -206,6 +206,8 @@ const ClientLayout = () => {
           <Outlet />
         </div>
       </main>
+      
+      <ChatBot />
     </div>
   );
 };

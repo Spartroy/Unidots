@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import api from '../../utils/api';
 import AuthContext from '../../context/AuthContext';
-import { DocumentTextIcon, ClipboardCheckIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ArrowTrendingUpIcon, ExclamationCircleIcon, ClipboardDocumentCheckIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
 
 const ClientDashboard = () => {
   const { user } = useContext(AuthContext);
   const [stats, setStats] = useState({
     totalOrders: 0,
-    pendingOrders: 0,
+    submittedOrders: 0,
+    inDesignOrders: 0,
+    inPrepressOrders: 0,
     completedOrders: 0,
     totalClaims: 0
   });
@@ -22,11 +24,11 @@ const ClientDashboard = () => {
         setLoading(true);
         
         // Fetch client stats
-        const statsResponse = await axios.get('/api/orders/client-stats');
+        const statsResponse = await api.get('/api/orders/client-stats');
         setStats(statsResponse.data);
         
-        // Fetch recent orders
-        const ordersResponse = await axios.get('/api/orders/client');
+        // Fetch recent orders (top 3)
+        const ordersResponse = await api.get('/api/orders/recent');
         setRecentOrders(ordersResponse.data);
       } catch (error) {
         toast.error('Failed to load dashboard data');
@@ -48,13 +50,19 @@ const ClientDashboard = () => {
   // Function to determine order status color
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed':
+      case 'Completed':
         return 'bg-green-100 text-green-800';
-      case 'in_progress':
+      case 'Designing':
         return 'bg-blue-100 text-blue-800';
-      case 'pending':
+      case 'In Prepress':
+        return 'bg-purple-100 text-purple-800';
+      case 'Ready for Delivery':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'Delivering':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'Submitted':
         return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
+      case 'Cancelled':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -73,14 +81,14 @@ const ClientDashboard = () => {
     <div className="space-y-6">
       {/* Welcome message */}
       <div className="bg-white shadow rounded-lg p-4 sm:p-6">
-        <h2 className="text-lg font-medium text-gray-900">Welcome, {user?.name}!</h2>
-        <p className="mt-1 text-sm text-gray-500">
+        <h2 className="text-lg font-medium text-center text-gray-900">Welcome, {user?.name}!</h2>
+        <p className="mt-1 text-sm text-center text-gray-500">
           Here's an overview of your orders and recent activity.
         </p>
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {/* Total Orders */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
@@ -107,18 +115,18 @@ const ClientDashboard = () => {
           </div>
         </div>
 
-        {/* Pending Orders */}
+        {/* Submitted Orders */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <DocumentTextIcon className="h-6 w-6 text-yellow-400" aria-hidden="true" />
+                <ClipboardDocumentListIcon className="h-6 w-6 text-yellow-400" aria-hidden="true" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Pending Orders</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Submitted</dt>
                   <dd>
-                    <div className="text-lg font-medium text-gray-900">{stats.pendingOrders}</div>
+                    <div className="text-lg font-medium text-gray-900">{stats.submittedOrders}</div>
                   </dd>
                 </dl>
               </div>
@@ -126,8 +134,60 @@ const ClientDashboard = () => {
           </div>
           <div className="bg-gray-50 px-5 py-3">
             <div className="text-sm">
-              <Link to="/client/orders?status=pending" className="font-medium text-primary-600 hover:text-primary-500">
-                View pending
+              <Link to="/client/orders?status=Submitted" className="font-medium text-primary-600 hover:text-primary-500">
+                View submitted
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* In Review Orders */}
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <ClipboardDocumentCheckIcon className="h-6 w-6 text-blue-400" aria-hidden="true" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Designing</dt>
+                  <dd>
+                    <div className="text-lg font-medium text-gray-900">{stats.inDesignOrders}</div>
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 px-5 py-3">
+            <div className="text-sm">
+              <Link to="/client/orders?status=Designing" className="font-medium text-primary-600 hover:text-primary-500">
+                View designing
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* In Prepress Orders */}
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <DocumentTextIcon className="h-6 w-6 text-blue-600" aria-hidden="true" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Prepress</dt>
+                  <dd>
+                    <div className="text-lg font-medium text-gray-900">{stats.inPrepressOrders}</div>
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 px-5 py-3">
+            <div className="text-sm">
+              <Link to="/client/orders?status=In%20Prepress,Delivering" className="font-medium text-primary-600 hover:text-primary-500">
+                View prepress
               </Link>
             </div>
           </div>
@@ -138,11 +198,11 @@ const ClientDashboard = () => {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <ClipboardCheckIcon className="h-6 w-6 text-green-400" aria-hidden="true" />
+                <ArrowTrendingUpIcon className="h-6 w-6 text-green-400" aria-hidden="true" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Completed Orders</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Completed</dt>
                   <dd>
                     <div className="text-lg font-medium text-gray-900">{stats.completedOrders}</div>
                   </dd>
@@ -152,7 +212,7 @@ const ClientDashboard = () => {
           </div>
           <div className="bg-gray-50 px-5 py-3">
             <div className="text-sm">
-              <Link to="/client/orders?status=completed" className="font-medium text-primary-600 hover:text-primary-500">
+              <Link to="/client/orders?status=Completed" className="font-medium text-primary-600 hover:text-primary-500">
                 View completed
               </Link>
             </div>
@@ -168,7 +228,7 @@ const ClientDashboard = () => {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Claims</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Claims</dt>
                   <dd>
                     <div className="text-lg font-medium text-gray-900">{stats.totalClaims}</div>
                   </dd>
@@ -188,9 +248,14 @@ const ClientDashboard = () => {
 
       {/* Recent Orders */}
       <div className="bg-white shadow rounded-lg">
-        <div className="px-4 py-5 sm:px-6">
-          <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Orders</h3>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">Your most recent orders</p>
+        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Orders</h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">Your 3 most recent orders</p>
+          </div>
+          <Link to="/client/orders" className="text-sm font-medium text-primary-600 hover:text-primary-500">
+            View all orders
+          </Link>
         </div>
         <div className="border-t border-gray-200">
           <div className="overflow-hidden overflow-x-auto">
@@ -204,7 +269,7 @@ const ClientDashboard = () => {
                     Date
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
+                    Title
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -225,11 +290,11 @@ const ClientDashboard = () => {
                         {formatDate(order.createdAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${order.totalAmount.toFixed(2)}
+                        {order.title || 'Untitled Order'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                          {order.status.replace('_', ' ').toUpperCase()}
+                          {order.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -243,19 +308,20 @@ const ClientDashboard = () => {
                   <tr>
                     <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
                       No orders placed yet.
+                      <div className="mt-2">
+                        <Link
+                          to="/client/orders/new"
+                          className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-primary-600 bg-primary-50 hover:bg-primary-100"
+                        >
+                          Create your first order
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          {recentOrders.length > 0 && (
-            <div className="bg-gray-50 px-4 py-4 sm:px-6 text-center">
-              <Link to="/client/orders/new" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                Create New Order
-              </Link>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -5,6 +5,10 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Auth Context Provider
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
+
+// Landing Page
+import Landing from './pages/Landing';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -29,6 +33,9 @@ import EmployeeOrderDetail from './pages/employee/OrderDetail';
 import EmployeeClaims from './pages/employee/Claims';
 import EmployeeClaimDetail from './pages/employee/ClaimDetail';
 import EmployeeProfile from './pages/employee/Profile';
+import Templates from './pages/employee/Templates';
+import TemplateCustomize from './pages/employee/TemplateCustomize';
+import TemplateDashboard from './pages/employee/TemplateDashboard';
 
 // Manager Portal Pages
 import ManagerDashboard from './pages/manager/Dashboard';
@@ -42,8 +49,17 @@ import ManagerEmployees from './pages/manager/Employees';
 import ManagerEmployeeDetail from './pages/manager/EmployeeDetail';
 import ManagerClients from './pages/manager/Clients';
 import ManagerClientDetail from './pages/manager/ClientDetail';
-import ManagerReports from './pages/manager/Reports';
 import ManagerProfile from './pages/manager/Profile';
+import MonthlyReports from './pages/manager/MonthlyReports';
+import BarrelManagement from './pages/manager/BarrelManagement';
+
+// New imports for Prepress
+import PrepressLayout from './components/layouts/PrepressLayout';
+import PrepressDashboard from './pages/prepress/Dashboard';
+import PrepressOrders from './pages/prepress/Orders';
+import PrepressOrderDetail from './pages/prepress/OrderDetail';
+import PrepressProfile from './pages/prepress/Profile';
+import AcidSolutionMonitor from './pages/prepress/AcidSolutionMonitor';
 
 // Layouts
 import ClientLayout from './components/layouts/ClientLayout';
@@ -53,75 +69,99 @@ import ManagerLayout from './components/layouts/ManagerLayout';
 // Protected Route Component
 import ProtectedRoute from './components/common/ProtectedRoute';
 
+// Ai Components
+import DotDeformationDetector from './pages/DotDeformationDetector';
+
 function App() {
   return (
     <AuthProvider>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+      <NotificationProvider>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* Client Portal Routes */}
-        <Route path="/client" element={
-          <ProtectedRoute allowedRoles={['client']}>
-            <ClientLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<ClientDashboard />} />
-          <Route path="orders" element={<ClientOrders />} />
-          <Route path="orders/:id" element={<ClientOrderDetail />} />
-          <Route path="orders/new" element={<ClientNewOrder />} />
-          <Route path="claims" element={<ClientClaims />} />
-          <Route path="claims/:id" element={<ClientClaimDetail />} />
-          <Route path="claims/new" element={<ClientNewClaim />} />
-          <Route path="profile" element={<ClientProfile />} />
-        </Route>
+          {/* Client Portal Routes */}
+          <Route path="/client" element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<ClientDashboard />} />
+            <Route path="orders" element={<ClientOrders />} />
+            <Route path="orders/:id" element={<ClientOrderDetail />} />
+            <Route path="orders/new" element={<ClientNewOrder />} />
+            <Route path="claims" element={<ClientClaims />} />
+            <Route path="claims/:id" element={<ClientClaimDetail />} />
+            <Route path="claims/new" element={<ClientNewClaim />} />
+            <Route path="profile" element={<ClientProfile />} />
+          </Route>
 
-        {/* Employee Portal Routes */}
-        <Route path="/employee" element={
-          <ProtectedRoute allowedRoles={['employee']}>
-            <EmployeeLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<EmployeeDashboard />} />
-          <Route path="tasks" element={<EmployeeTasks />} />
-          <Route path="tasks/:id" element={<EmployeeTaskDetail />} />
-          <Route path="orders" element={<EmployeeOrders />} />
-          <Route path="orders/:id" element={<EmployeeOrderDetail />} />
-          <Route path="claims" element={<EmployeeClaims />} />
-          <Route path="claims/:id" element={<EmployeeClaimDetail />} />
-          <Route path="profile" element={<EmployeeProfile />} />
-        </Route>
+          {/* Employee Portal Routes */}
+          <Route path="/employee" element={
+            <ProtectedRoute allowedRoles={['employee']}>
+              <EmployeeLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<EmployeeDashboard />} />
+            <Route path="tasks" element={<EmployeeTasks />} />
+            <Route path="tasks/:id" element={<EmployeeTaskDetail />} />
+            <Route path="orders" element={<EmployeeOrders />} />
+            <Route path="orders/:id" element={<EmployeeOrderDetail />} />
+            <Route path="templates" element={<Templates />} />
+            <Route path="templates/dashboard" element={<TemplateDashboard />} />
+            <Route path="templates/:templateId" element={<TemplateCustomize />} />
+            <Route path="templates/:templateId/customize" element={<TemplateCustomize />} />
+            <Route path="claims" element={<EmployeeClaims />} />
+            <Route path="claims/:id" element={<EmployeeClaimDetail />} />
+            <Route path="profile" element={<EmployeeProfile />} />
+          </Route>
 
-        {/* Manager Portal Routes */}
-        <Route path="/manager" element={
-          <ProtectedRoute allowedRoles={['manager', 'admin']}>
-            <ManagerLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<ManagerDashboard />} />
-          <Route path="orders" element={<ManagerOrders />} />
-          <Route path="orders/:id" element={<ManagerOrderDetail />} />
-          <Route path="claims" element={<ManagerClaims />} />
-          <Route path="claims/:id" element={<ManagerClaimDetail />} />
-          <Route path="tasks" element={<ManagerTasks />} />
-          <Route path="tasks/:id" element={<ManagerTaskDetail />} />
-          <Route path="employees" element={<ManagerEmployees />} />
-          <Route path="employees/:id" element={<ManagerEmployeeDetail />} />
-          <Route path="clients" element={<ManagerClients />} />
-          <Route path="clients/:id" element={<ManagerClientDetail />} />
-          <Route path="reports" element={<ManagerReports />} />
-          <Route path="profile" element={<ManagerProfile />} />
-        </Route>
+          {/* Manager Portal Routes */}
+          <Route path="/manager" element={
+            <ProtectedRoute allowedRoles={['manager', 'admin']}>
+              <ManagerLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<ManagerDashboard />} />
+            <Route path="orders" element={<ManagerOrders />} />
+            <Route path="orders/:id" element={<ManagerOrderDetail />} />
+            <Route path="claims" element={<ManagerClaims />} />
+            <Route path="claims/:id" element={<ManagerClaimDetail />} />
+            <Route path="tasks" element={<ManagerTasks />} />
+            <Route path="tasks/:id" element={<ManagerTaskDetail />} />
+            <Route path="employees" element={<ManagerEmployees />} />
+            <Route path="employees/:id" element={<ManagerEmployeeDetail />} />
+            <Route path="clients" element={<ManagerClients />} />
+            <Route path="clients/:id" element={<ManagerClientDetail />} />
+            <Route path="barrel-management" element={<BarrelManagement />} />
+            <Route path="reports" element={<MonthlyReports />} />
+            <Route path="profile" element={<ManagerProfile />} />
+          </Route>
 
-        {/* Redirect root to appropriate dashboard based on role */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Prepress Portal Routes */}
+          <Route path="/prepress" element={
+            <ProtectedRoute allowedRoles={['prepress']}>
+              <PrepressLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<PrepressDashboard />} />
+            <Route path="orders" element={<PrepressOrders />} />
+            <Route path="orders/:id" element={<PrepressOrderDetail />} />
+            <Route path="acid-solution" element={<AcidSolutionMonitor />} />
+            <Route path="profile" element={<PrepressProfile />} />
+          </Route>
+
+          {/* Landing Page */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/DotDeformationDetector" element={<DotDeformationDetector />} />
+          
+          {/* Catch all - redirect to landing */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
         
-        {/* Catch all - redirect to login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-      
-      <ToastContainer position="top-right" autoClose={5000} />
+        <ToastContainer position="top-right" autoClose={5000} />
+      </NotificationProvider>
     </AuthProvider>
   );
 }

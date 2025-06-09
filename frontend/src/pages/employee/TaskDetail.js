@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../utils/api';
 import { toast } from 'react-toastify';
 import AuthContext from '../../context/AuthContext';
 import { ClockIcon, CheckCircleIcon, ExclamationCircleIcon, DocumentTextIcon, PaperClipIcon } from '@heroicons/react/24/outline';
@@ -26,15 +26,15 @@ const TaskDetail = () => {
         setLoading(true);
         
         // Fetch task details
-        const taskResponse = await axios.get(`/api/tasks/${id}`);
+        const taskResponse = await api.get(`/api/tasks/${id}`);
         setTask(taskResponse.data);
         
         // Fetch task comments
-        const commentsResponse = await axios.get(`/api/tasks/${id}/comments`);
+        const commentsResponse = await api.get(`/api/tasks/${id}/comments`);
         setComments(commentsResponse.data);
         
         // Fetch task files
-        const filesResponse = await axios.get(`/api/tasks/${id}/files`);
+        const filesResponse = await api.get(`/api/tasks/${id}/files`);
         setUploadedFiles(filesResponse.data);
       } catch (error) {
         toast.error('Failed to load task details');
@@ -94,19 +94,34 @@ const TaskDetail = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  // Function to format status for display
+  const formatStatus = (status) => {
+    if (!status) return '';
+    
+    if (status.includes('_')) {
+      return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+    
+    return status;
+  };
+
   // Function to determine task status color
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'overdue':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+    // Normalize status to lowercase for comparison
+    const normalizedStatus = status.toLowerCase();
+    
+    if (normalizedStatus === 'completed') {
+      return 'bg-green-100 text-green-800';
+    } else if (normalizedStatus === 'in progress' || normalizedStatus === 'in_progress') {
+      return 'bg-blue-100 text-blue-800';
+    } else if (normalizedStatus === 'pending') {
+      return 'bg-yellow-100 text-yellow-800';
+    } else if (normalizedStatus === 'on hold' || normalizedStatus === 'on_hold') {
+      return 'bg-gray-100 text-gray-800';
+    } else if (normalizedStatus === 'cancelled') {
+      return 'bg-red-100 text-red-800';
+    } else {
+      return 'bg-gray-100 text-gray-800';
     }
   };
   
@@ -114,15 +129,40 @@ const TaskDetail = () => {
   const updateTaskStatus = async (newStatus) => {
     try {
       setSubmitting(true);
-      await axios.put(`/api/tasks/${id}/status`, { status: newStatus });
+      // Convert status format to what the API expects (lowercase with underscores)
+      let apiStatus = newStatus.toLowerCase();
+      if (apiStatus.includes(' ')) {
+        apiStatus = apiStatus.replace(/ /g, '_');
+      }
       
-      // Update the task in the local state
+      await api.put(`/api/tasks/${id}`, { status: apiStatus });
+      
+      // Update the task in the local state (keep UI format)
       setTask({ ...task, status: newStatus });
       
       toast.success('Task status updated successfully');
     } catch (error) {
       toast.error('Failed to update task status');
       console.error('Task update error:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  // Function to mark task as complete
+  const completeTask = async () => {
+    try {
+      setSubmitting(true);
+      // The /complete endpoint already sets the status to 'completed' in the backend
+      await api.put(`/api/tasks/${id}/complete`, { completionNotes: '' });
+      
+      // Update the task in the local state with the UI format
+      setTask({ ...task, status: 'Completed', completedAt: new Date() });
+      
+      toast.success('Task marked as completed');
+    } catch (error) {
+      toast.error('Failed to complete task');
+      console.error('Task completion error:', error);
     } finally {
       setSubmitting(false);
     }
@@ -136,7 +176,7 @@ const TaskDetail = () => {
     
     try {
       setSubmitting(true);
-      const response = await axios.post(`/api/tasks/${id}/comments`, { content: newComment });
+      const response = await api.post(`/api/tasks/${id}/comments`, { content: newComment });
       
       // Add the new comment to the comments array
       setComments([...comments, response.data]);
@@ -170,7 +210,7 @@ const TaskDetail = () => {
       });
       
       // Upload files
-      const response = await axios.post('/api/files/upload', uploadFormData, {
+      const response = await api.post('/api/files/upload', uploadFormData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -194,7 +234,7 @@ const TaskDetail = () => {
   // Function to download a file
   const downloadFile = async (fileId, fileName) => {
     try {
-      const response = await axios.get(`/api/files/${fileId}/download`, {
+      const response = await api.get(`/api/files/${fileId}/download`, {
         responseType: 'blob'
       });
       
@@ -240,7 +280,7 @@ const TaskDetail = () => {
             </p>
           </div>
           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(task.status)}`}>
-            {task.status.replace('_', ' ').toUpperCase()}
+            {formatStatus(task.status)}
           </span>
         </div>
         <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
@@ -258,38 +298,17 @@ const TaskDetail = () => {
               <dd className="mt-1 text-sm text-gray-900">{task.priority || 'Normal'}</dd>
             </div>
             <div className="sm:col-span-1">
-              <dt className="text-sm font-medium text-gray-500">Related Order</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {task.order ? (
-                  <Link to={`/employee/orders/${task.order._id}`} className="text-secondary-600 hover:text-secondary-900">
-                    {task.order.orderNumber}
-                  </Link>
-                ) : (
-                  'N/A'
-                )}
-              </dd>
+            <dt className="text-sm font-medium text-gray-500">Description</dt>
+            <dd className="mt-1 text-sm text-gray-900">{task.description}</dd>
             </div>
-            <div className="sm:col-span-2">
-              <dt className="text-sm font-medium text-gray-500">Description</dt>
-              <dd className="mt-1 text-sm text-gray-900">{task.description}</dd>
-            </div>
+         
           </dl>
         </div>
         <div className="border-t border-gray-200 px-4 py-4 sm:px-6 bg-gray-50">
           <div className="flex space-x-3">
-            {task.status !== 'in_progress' && task.status !== 'completed' && (
+            {task.status !== 'Completed' && task.status !== 'completed' && (
               <button
-                onClick={() => updateTaskStatus('in_progress')}
-                disabled={submitting}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                Start Task
-              </button>
-            )}
-            
-            {task.status !== 'completed' && (
-              <button
-                onClick={() => updateTaskStatus('completed')}
+                onClick={() => completeTask()}
                 disabled={submitting}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
               >
@@ -307,113 +326,9 @@ const TaskDetail = () => {
         </div>
       </div>
 
-      {/* Files section */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="px-4 py-5 sm:px-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">Files</h3>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">
-            Task attachments and related documents
-          </p>
-        </div>
-        <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-          {/* File upload dropzone */}
-          <div 
-            {...getRootProps()} 
-            className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md ${isDragActive ? 'border-secondary-500 bg-secondary-50' : 'border-gray-300'}`}
-          >
-            <div className="space-y-1 text-center">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                stroke="currentColor"
-                fill="none"
-                viewBox="0 0 48 48"
-                aria-hidden="true"
-              >
-                <path
-                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <div className="flex text-sm text-gray-600">
-                <input {...getInputProps()} />
-                <p className="pl-1">
-                  Drag and drop files here, or click to select files
-                </p>
-              </div>
-              <p className="text-xs text-gray-500">PDF, DOC, XLS, AI, EPS, JPG, PNG up to 10MB</p>
-            </div>
-          </div>
+      
           
-          {/* Selected files list */}
-          {files.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-sm font-medium text-gray-700">Selected Files</h4>
-              <ul className="mt-2 border border-gray-200 rounded-md divide-y divide-gray-200">
-                {files.map((file, index) => (
-                  <li key={index} className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
-                    <div className="w-0 flex-1 flex items-center">
-                      <PaperClipIcon className="flex-shrink-0 h-5 w-5 text-gray-400" aria-hidden="true" />
-                      <span className="ml-2 flex-1 w-0 truncate">{file.name}</span>
-                    </div>
-                    <div className="ml-4 flex-shrink-0">
-                      <span className="font-medium text-gray-500">
-                        {(file.size / 1024).toFixed(1)} KB
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={uploadFiles}
-                  disabled={uploading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-secondary-600 hover:bg-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500 disabled:opacity-50"
-                >
-                  {uploading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Uploading...
-                    </>
-                  ) : 'Upload Files'}
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Uploaded files list */}
-          <div className="mt-6">
-            <h4 className="text-sm font-medium text-gray-700">Attached Files</h4>
-            {uploadedFiles.length > 0 ? (
-              <ul className="mt-2 border border-gray-200 rounded-md divide-y divide-gray-200">
-                {uploadedFiles.map((file) => (
-                  <li key={file._id} className="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
-                    <div className="w-0 flex-1 flex items-center">
-                      <PaperClipIcon className="flex-shrink-0 h-5 w-5 text-gray-400" aria-hidden="true" />
-                      <span className="ml-2 flex-1 w-0 truncate">{file.originalName}</span>
-                    </div>
-                    <div className="ml-4 flex-shrink-0">
-                      <button
-                        onClick={() => downloadFile(file._id, file.originalName)}
-                        className="font-medium text-secondary-600 hover:text-secondary-500"
-                      >
-                        Download
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-2 text-sm text-gray-500">No files attached to this task yet.</p>
-            )}
-          </div>
-        </div>
-      </div>
+         
 
       {/* Comments section */}
       <div className="bg-white shadow rounded-lg overflow-hidden">

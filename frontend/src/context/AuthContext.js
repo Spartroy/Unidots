@@ -1,6 +1,10 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
+
+// Base API URL
+const API_URL = 'http://localhost:4000';
 
 const AuthContext = createContext();
 
@@ -29,7 +33,36 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.post('/api/users/login', { email, password });
+      const response = await api.post('/api/auth/login', { email, password });
+      
+      // Ensure address is properly structured for old accounts
+      if (response.data.role === 'client' && response.data.address) {
+        // If address is a string or missing fields, convert to proper structure
+        if (typeof response.data.address === 'string') {
+          response.data.address = {
+            street: response.data.address,
+            city: '',
+            state: '',
+            postalCode: '',
+            country: ''
+          };
+        } else if (!response.data.address.street) {
+          // Ensure all address fields exist
+          response.data.address = {
+            street: '',
+            city: '',
+            state: '',
+            postalCode: '',
+            country: '',
+            ...response.data.address
+          };
+        }
+      }
+      
+      // Ensure phone exists
+      if (response.data.role === 'client' && !response.data.phone) {
+        response.data.phone = '';
+      }
       
       // Save user to state and localStorage
       setUser(response.data);
@@ -56,7 +89,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.post('/api/users', userData);
+      const response = await api.post('/api/auth/register', userData);
       
       // Save user to state and localStorage
       setUser(response.data);
@@ -70,8 +103,13 @@ export const AuthProvider = ({ children }) => {
       
       return response.data;
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred during registration');
-      throw err;
+      const errorMessage = err.response?.data?.message || 
+        (err.response?.status === 400 ? 'Invalid registration data' :
+         err.response?.status === 403 ? 'Not authorized to create this type of account' :
+         err.response?.status === 409 ? 'User already exists' :
+         'An error occurred during registration');
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -96,10 +134,11 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.put('/api/users/profile', userData);
+      const response = await api.put('/api/users/profile', userData);
       
-      // Update user in state and localStorage
-      const updatedUser = { ...user, ...response.data };
+      // Update user in state and localStorage with preserved token
+      const token = user.token;
+      const updatedUser = { ...response.data, token };
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
@@ -120,6 +159,9 @@ export const AuthProvider = ({ children }) => {
         break;
       case 'employee':
         navigate('/employee');
+        break;
+      case 'prepress':
+        navigate('/prepress');
         break;
       case 'manager':
       case 'admin':
